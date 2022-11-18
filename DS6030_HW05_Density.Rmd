@@ -1,0 +1,210 @@
+---
+title: "DS 6030 HW05 Density"
+author: "Ben Wilson"
+date: "`10/10/2022"
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    theme: cosmo
+    toc: yes
+    toc_float: yes
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+#set up R
+knitr::opts_chunk$set(echo = TRUE)
+data.dir = 'https://mdporter.github.io/DS6030/data/' # data directory
+library(R6030)     # functions for DS 6030
+library(ks)        # functions for KDE
+library(tidyverse) # functions for data manipulation  
+library(fitdistrplus)
+library(ks)
+library(mvtnorm)
+```
+
+# Bat Data
+
+Load data for R
+```{r}
+#load data
+bat_data <- read.csv("C:\\Users\\brwil\\Desktop\\SY MSDS\\DS 6030 Stat Learning\\Week 6\\geo_profile.csv", header=TRUE,stringsAsFactors=FALSE)
+
+names(bat_data)[names(bat_data) == 'X2.5817631825286242'] <- 'bat_count'
+```
+
+
+# Problem 1 Geographic Profiling
+Geographic profiling, a method developed in criminology, can be used to estimate the home location (roost) of animals based on a collection of sightings. The approach requires an estimate of the distribution the animal will travel from their roost to forage for food.
+
+A sample of 283 distances that pipistrelle bats traveled (in meters).
+
+## 1a. Derive the MLE for theta (i.e., show the math).
+
+```{r}
+#insert picture of math derivation
+knitr::include_graphics('C:/Users/brwil/Desktop/SY MSDS/DS 6030 Stat Learning/Week 6/Problem1AMath.png')
+
+```
+
+## 1b. What is the MLE of theta for the bat data? (Use results from a, or use computational methods.)
+
+Distribution fit and plot of output
+```{r}
+expon_dist <- fitdist(bat_data$bat_count, "exp", method="mle")
+plot(expon_dist)
+```
+
+Theta & Standard Error
+```{r}
+summary(expon_dist)
+```
+
+The estimate of 0.3736245 is the estimated bandwidth.
+
+
+## 1c. Using the MLE value of theta from part b, compute the estimated density at a set of evaluation points between 0 and 8 meters. Plot the estimated density.
+```{r}
+#histogram settings
+bw = 0.3736245    #binwidth parameter
+bks = seq(0, 8, by = bw)
+
+#frequency histogram
+ggplot() +
+  geom_histogram(aes(x=bat_data$bat_count, y=after_stat(density)), breaks = bks, color="white") +
+  labs(title="Density Histogram")
+
+#calculate density
+density(bat_data$bat_count)
+```
+
+## 1d. Estimate the density using KDE. Report the bandwidth you chose and produce a plot of the estimated density.
+
+```{r}
+#kde function to estimate bandwidth selection
+f.kde = kde(bat_data$bat_count)
+
+#default bandwidth
+bw.nrd0(bat_data$bat_count)
+
+#multiple bandwidth selection options
+c(bw.nrd0 = bw.nrd0(bat_data$bat_count), bw.nrd=bw.nrd(bat_data$bat_count), bw.bcv=bw.bcv(bat_data$bat_count),
+bw.SJ = bw.SJ(bat_data$bat_count), bw.ucv=bw.ucv(bat_data$bat_count))
+
+#kde function for bandwidth selection
+f.kde$h
+```
+
+```{r}
+#mile marker density plot 
+plot(f.kde, las = 1)
+
+#bandwidth selected
+f.kde$h
+```
+
+Final density of 0.3966.
+
+## 1e. Which model do you prefer, the parametric or KDE?
+The KDE model provides a smoother view of the data which, upon eye balling quickly, provides and easier estimate to gauge density for an observation of X. If I am to be more specific in my result though, parametric would likely be the plot of choice.
+
+
+# Problem 2: Interstate Crash Density
+Interstate 64 (I-64) is a major east-west road that passes just south of Charlottesville. Where and when are the most dangerous places/times to be on I-64? The crash data (link below) gives the mile marker and fractional time-of-week for crashes that occurred on I-64 between mile marker 87 and 136 in 2016. The time-of-week data takes a numeric value of <dow>.<hour/24>, where the dow starts at 0 for Sunday (6 for Sat) and the decimal gives the time of day information. Thus time=0.0417 corresponds to Sun at 1am and time=6.5 corresponds to Sat at noon.
+
+Load data for R
+```{r}
+#load data
+crash_data <- read.csv("C:\\Users\\brwil\\Desktop\\SY MSDS\\DS 6030 Stat Learning\\Week 6\\crashes16.csv", header=TRUE,stringsAsFactors=FALSE)
+
+```
+
+## 2a. Extract the crashes and make a scatter plot with mile marker on x-axis and time on y-axis.
+```{r}
+ggplot(crash_data, aes(x=mile, y=time)) +
+  geom_point() + 
+  labs(title="Miles vs Time for I-64 Crash Data",
+       x="Mile Marker", y = "Time-of-Week")+
+  theme_classic()  
+
+```
+
+## 2b. Use KDE to estimate the mile marker density.
+Report the bandwidth.
+Plot the density estimate.
+
+```{r}
+#kde function to estimate bandwidth selection
+f_kde_m = kde(crash_data$mile)
+
+#default bandwidth
+bw.nrd0(crash_data$mile)
+
+#multiple bandwidth selection options
+c(bw.nrd0 = bw.nrd0(crash_data$mile), bw.nrd=bw.nrd(crash_data$mile), bw.bcv=bw.bcv(crash_data$mile),
+bw.SJ = bw.SJ(crash_data$mile), bw.ucv=bw.ucv(crash_data$mile))
+
+#kde function for bandwidth selection
+f_kde_m$h
+```
+
+```{r}
+#mile marker density plot 
+plot(f_kde_m, las = 1)
+
+#bandwidth selected
+f_kde_m$h
+```
+
+## 2c. Use KDE to estimate the temporal time-of-week density.
+Report the bandwidth.
+Plot the density estimate.
+```{r}
+#kde function to estimate bandwidth selection
+f_kde_t = kde(crash_data$time)
+
+#mile marker density plot 
+plot(f_kde_t, las = 1)
+
+#bandwidth selected
+f_kde_t$h
+```
+
+Bandwidth selected of 0.414127.
+
+## 2d. Use KDE to estimate the bivariate mile-time density.
+Report the bandwidth parameters.
+Plot the bivariate density estimate.
+```{r}
+#save crash data as variable
+X = crash_data
+
+#smoothed cross-validation bw estimator
+(H1 = Hscv(X))
+
+#use H for multivariate data
+f1 = kde(X, H = H1)
+
+plot(f1, 
+     cont = c(5, 10, 25, 50, 75), #set contour levels
+     las = 1, 
+     xlim = c(85.0, 140.0), #set x limit based on data
+     ylim = c(-0.5, 8)) #set y limit based on data
+
+#add points
+points(X, pch = 19, cex = 0.5, col = 'grey60')
+
+#add grid lines
+grid()
+
+
+
+```
+
+
+## 2e. Based on the estimated density, approximate the most dangerous place and time to drive on this strech of road. Identify the mile marker and time-of-week pair.
+Based on the bivariate mile-time density above, the two most dangerous places are roughly mile marker 103 at time 5.5 and mile marker 119 at time 1.8. Given that the mile marker 103 at time 5.5 has slightly more observations so likely a greater level of danger.
+
+
